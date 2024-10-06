@@ -57,6 +57,7 @@ struct TDrawImage {
 	int w, h;
 	int flip;
 	GLuint tex;
+	int changed;
 };
 
 // Globals
@@ -149,6 +150,7 @@ GLuint g_VertexObject;
 void Draw_ShowInfo();
 void Draw_SetMatrix(float matrix[16]);
 GLuint Draw_UploadGLTexture(int w, int h, const uint8_t *pixels);
+void Draw_DeleteGLTexture(GLuint tex);
 
 /////////////////////////////
 // Draw_Init
@@ -388,6 +390,12 @@ GLuint Draw_UploadGLTexture(int w, const int h, const uint8_t *pixels) {
 }
 
 /////////////////////////////
+// Draw_DeleteGLTexture
+//
+//
+void Draw_DeleteGLTexture(GLuint tex) { glDeleteTextures(1, &tex); }
+
+/////////////////////////////
 // Draw_Flush
 //
 // Performs all the queued draw actions.
@@ -395,8 +403,14 @@ void Draw_Flush() {
 	if (g_CurrentImg == NULL || g_QuadArray->nVertex <= 0) {
 		return;
 	}
+	if (g_CurrentImg->tex != -1 && g_CurrentImg->changed) {
+		Draw_DeleteGLTexture(g_CurrentImg->tex);
+		g_CurrentImg->tex     = -1;
+		g_CurrentImg->changed = 0;
+	}
 	if (g_CurrentImg->tex == -1) {
 		g_CurrentImg->tex = Draw_UploadGLTexture(g_CurrentImg->w, g_CurrentImg->h, g_CurrentImg->data);
+		g_CurrentImg->changed = 0;
 	}
 
 #if USE_OpenGL
@@ -654,6 +668,7 @@ DrawImg Draw_CreateImage(int w, int h) {
 	image->y        = -(image->h / 2);
 	image->flip     = 0;
 	image->tex      = -1;
+	image->changed  = 1;
 
 	return ((DrawImg)image);
 }
@@ -667,15 +682,17 @@ DrawImg Draw_LoadImage(char *filename) {
 	// Try loading PNG images
 	if (EndsWith(filename, ".png") || EndsWith(filename, ".PNG")) {
 		DrawImage image = malloc(sizeof(TDrawImage));
-		unsigned error  = lodepng_decode32_file(&image->data, (unsigned *)&image->w, (unsigned *)&image->h, filename);
+		const unsigned error =
+			lodepng_decode32_file(&image->data, (unsigned *)&image->w, (unsigned *)&image->h, filename);
 		if (error) {
 			Print("Draw_LoadImage: PNG decoder error %u: %s on file %s\n", error, lodepng_error_text(error), filename);
 			return (NULL);
 		}
-		image->x    = -(image->w / 2);
-		image->y    = -(image->h / 2);
-		image->flip = 0;
-		image->tex  = -1;
+		image->x       = -(image->w / 2);
+		image->y       = -(image->h / 2);
+		image->flip    = 0;
+		image->tex     = -1;
+		image->changed = 1;
 		return (DrawImg)image;
 	}
 
@@ -747,6 +764,7 @@ DrawImg Draw_SetPixel(DrawImg img, const int x, const int y, const ColorRgba col
 	image->data[offset + 1] = color[1];
 	image->data[offset + 2] = color[2];
 	image->data[offset + 3] = color[3];
+	image->changed          = 1;
 	return img;
 }
 DrawImg Draw_AddPixel(DrawImg img, const int x, const int y, const ColorRgba color, const float factor) {
@@ -776,6 +794,7 @@ DrawImg Draw_AddPixel(DrawImg img, const int x, const int y, const ColorRgba col
 	image->data[offset + 1] = SumClamp_uint8(image->data[offset + 1] * (1 - alpha), g);
 	image->data[offset + 2] = SumClamp_uint8(image->data[offset + 2] * (1 - alpha), b);
 	image->data[offset + 3] = SumClamp_uint8(image->data[offset + 3], a);
+	image->changed          = 1;
 	return img;
 }
 
@@ -1074,6 +1093,7 @@ DrawImage Draw_DefaultFontImage(const ColorRgba color) {
 			}
 		}
 	}
+	img->changed = 1;
 
 	return (img);
 }
