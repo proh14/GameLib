@@ -82,6 +82,18 @@ void Draw_SetFlip(DrawImg img, int flip);
 int Draw_GetFlip(DrawImg img);
 
 /////////////////////////////
+// Draw_DrawBoxFilled
+//
+//
+DrawImg Draw_DrawBoxFilled(DrawImg img, int x1, int y1, int x2, int y2, ColorRgba color);
+
+/////////////////////////////
+// Draw_DrawBox
+//
+//
+DrawImg Draw_DrawBox(DrawImg img, int x1, int y1, int x2, int y2, ColorRgba color);
+
+/////////////////////////////
 // Draw_DrawImg
 //
 // Draws an image.

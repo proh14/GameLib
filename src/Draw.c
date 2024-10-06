@@ -733,6 +733,61 @@ int Draw_GetFlip(DrawImg img) {
 }
 
 /////////////////////////////
+// Draw_DrawBoxFilled
+//
+//
+DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2, const int y2, ColorRgba color) {
+	const DrawImage image = img;
+
+	for (int y = y1; y < y2; y++) {
+		for (int x = x1; x < x2; x++) {
+			const int offset        = (x + y * image->w) * 4;
+			image->data[offset + 0] = color[0];
+			image->data[offset + 1] = color[1];
+			image->data[offset + 2] = color[2];
+			image->data[offset + 3] = color[3];
+		}
+	}
+
+	return (img);
+}
+
+/////////////////////////////
+// Draw_DrawBox
+//
+//
+DrawImg Draw_DrawBox(DrawImg img, const int x1, const int y1, const int x2, const int y2, ColorRgba color) {
+	const DrawImage image = img;
+
+	for (int x = x1; x < x2; x++) {
+		const int offset1        = (x + y1 * image->w) * 4;
+		image->data[offset1 + 0] = color[0];
+		image->data[offset1 + 1] = color[1];
+		image->data[offset1 + 2] = color[2];
+		image->data[offset1 + 3] = color[3];
+		const int offset2        = (x + (y2 - 1) * image->w) * 4;
+		image->data[offset2 + 0] = color[0];
+		image->data[offset2 + 1] = color[1];
+		image->data[offset2 + 2] = color[2];
+		image->data[offset2 + 3] = color[3];
+	}
+	for (int y = y1 + 1; y < y2 - 1; y++) {
+		const int offset1        = (x1 + y * image->w) * 4;
+		image->data[offset1 + 0] = color[0];
+		image->data[offset1 + 1] = color[1];
+		image->data[offset1 + 2] = color[2];
+		image->data[offset1 + 3] = color[3];
+		const int offset2        = ((x2 - 1) + y * image->w) * 4;
+		image->data[offset2 + 0] = color[0];
+		image->data[offset2 + 1] = color[1];
+		image->data[offset2 + 2] = color[2];
+		image->data[offset2 + 3] = color[3];
+	}
+
+	return (img);
+}
+
+/////////////////////////////
 // Draw_DrawImg
 //
 // Draws an image.
