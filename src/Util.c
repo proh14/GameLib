@@ -26,6 +26,14 @@ int MaximumInt(int i0, int i1) {
 	return i0;
 }
 
+uint8_t SumClamp_uint8(const uint8_t a, const uint8_t b) {
+	const uint16_t sum = a + b;
+	if (sum > 255) {
+		return 255;
+	}
+	return sum;
+}
+
 /////////////////////////////
 // Rect
 //

@@ -82,6 +82,14 @@ void Draw_SetFlip(DrawImg img, int flip);
 int Draw_GetFlip(DrawImg img);
 
 /////////////////////////////
+// Draw_SetPixel
+// Draw_AddPixel
+//
+//
+DrawImg Draw_SetPixel(DrawImg img, int x, int y, const ColorRgba color);
+DrawImg Draw_AddPixel(DrawImg img, int x, int y, const ColorRgba color, float factor);
+
+/////////////////////////////
 // Draw_DrawBoxFilled
 //
 //
@@ -92,6 +100,12 @@ DrawImg Draw_DrawBoxFilled(DrawImg img, int x1, int y1, int x2, int y2, const Co
 //
 //
 DrawImg Draw_DrawBox(DrawImg img, int x1, int y1, int x2, int y2, const ColorRgba color);
+
+/////////////////////////////
+// Draw_DrawCircle
+//
+//
+DrawImg Draw_DrawCircle(DrawImg img, int centerX, int centerY, int radius, int innerRadius, const ColorRgba color);
 
 /////////////////////////////
 // Draw_DrawImg

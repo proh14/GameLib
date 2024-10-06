@@ -730,23 +730,66 @@ int Draw_GetFlip(DrawImg img) {
 }
 
 /////////////////////////////
+// Draw_SetPixel
+// Draw_AddPixel
+//
+//
+DrawImg Draw_SetPixel(DrawImg img, const int x, const int y, const ColorRgba color) {
+	DrawImage image = img;
+	if (x < 0 || y < 0) {
+		return img;
+	}
+	if (x >= image->w || y >= image->h) {
+		return img;
+	}
+	const int offset        = (x + y * image->w) * 4;
+	image->data[offset + 0] = color[0];
+	image->data[offset + 1] = color[1];
+	image->data[offset + 2] = color[2];
+	image->data[offset + 3] = color[3];
+	return img;
+}
+DrawImg Draw_AddPixel(DrawImg img, const int x, const int y, const ColorRgba color, const float factor) {
+	const float alpha = factor * ((float)color[3] / 255);
+	if (alpha <= 0) {
+		return img;
+	}
+	if (alpha >= 255) {
+		Draw_SetPixel(img, x, y, color);
+		return img;
+	}
+	DrawImage image = img;
+	if (x < 0 || y < 0) {
+		return img;
+	}
+	if (x >= image->w || y >= image->h) {
+		return img;
+	}
+
+	const uint8_t a = (uint8_t)(alpha * 255);
+	const uint8_t r = (int)((float)color[0] * alpha);
+	const uint8_t g = (int)((float)color[1] * alpha);
+	const uint8_t b = (int)((float)color[2] * alpha);
+
+	const int offset        = (x + y * image->w) * 4;
+	image->data[offset + 0] = SumClamp_uint8(image->data[offset + 0] * (1 - alpha), r);
+	image->data[offset + 1] = SumClamp_uint8(image->data[offset + 1] * (1 - alpha), g);
+	image->data[offset + 2] = SumClamp_uint8(image->data[offset + 2] * (1 - alpha), b);
+	image->data[offset + 3] = SumClamp_uint8(image->data[offset + 3], a);
+	return img;
+}
+
+/////////////////////////////
 // Draw_DrawBoxFilled
 //
 //
 DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2, const int y2, const ColorRgba color) {
-	DrawImage image = img;
-
 	for (int y = y1; y < y2; y++) {
 		for (int x = x1; x < x2; x++) {
-			const int offset        = (x + y * image->w) * 4;
-			image->data[offset + 0] = color[0];
-			image->data[offset + 1] = color[1];
-			image->data[offset + 2] = color[2];
-			image->data[offset + 3] = color[3];
+			Draw_SetPixel(img, x, y, color);
 		}
 	}
-
-	return (img);
+	return img;
 }
 
 /////////////////////////////
@@ -754,34 +797,49 @@ DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2
 //
 //
 DrawImg Draw_DrawBox(DrawImg img, const int x1, const int y1, const int x2, const int y2, const ColorRgba color) {
-	DrawImage image = img;
-
 	for (int x = x1; x < x2; x++) {
-		const int offset1        = (x + y1 * image->w) * 4;
-		image->data[offset1 + 0] = color[0];
-		image->data[offset1 + 1] = color[1];
-		image->data[offset1 + 2] = color[2];
-		image->data[offset1 + 3] = color[3];
-		const int offset2        = (x + (y2 - 1) * image->w) * 4;
-		image->data[offset2 + 0] = color[0];
-		image->data[offset2 + 1] = color[1];
-		image->data[offset2 + 2] = color[2];
-		image->data[offset2 + 3] = color[3];
+		Draw_SetPixel(img, x, y1, color);
+		Draw_SetPixel(img, x, y2 - 1, color);
 	}
 	for (int y = y1 + 1; y < y2 - 1; y++) {
-		const int offset1        = (x1 + y * image->w) * 4;
-		image->data[offset1 + 0] = color[0];
-		image->data[offset1 + 1] = color[1];
-		image->data[offset1 + 2] = color[2];
-		image->data[offset1 + 3] = color[3];
-		const int offset2        = ((x2 - 1) + y * image->w) * 4;
-		image->data[offset2 + 0] = color[0];
-		image->data[offset2 + 1] = color[1];
-		image->data[offset2 + 2] = color[2];
-		image->data[offset2 + 3] = color[3];
+		Draw_SetPixel(img, x1, y, color);
+		Draw_SetPixel(img, x2 - 1, y, color);
 	}
-
 	return (img);
+}
+
+/////////////////////////////
+// Draw_DrawCircle
+//
+//
+DrawImg Draw_DrawCircle(DrawImg img, int centerX, int centerY, int radius, int innerRadius, const ColorRgba color) {
+	for (int y = -centerY; y < centerY; y++) {
+		for (int x = -centerX; x < centerX; x++) {
+			const float dist = sqrtf((float)(x * x + y * y));
+			if (dist <= (float)radius) {
+				const float delta = (float)radius - dist;
+				if (delta > 1.0f) {
+					// In
+					const float innerDelta = (float)innerRadius - dist;
+					if (innerDelta > 1.0f) {
+						// In
+					} else if (innerDelta <= 1.0f && innerDelta >= 0.0f) {
+						// Edge
+						Draw_AddPixel(img, centerX + x, centerY + y, color, 1.0f - innerDelta);
+					} else {
+						// Out
+						Draw_AddPixel(img, centerX + x, centerY + y, color, 1.0f);
+					}
+				} else if (delta <= 1.0f && delta >= 0.0f) {
+					// Edge
+					Draw_AddPixel(img, centerX + x, centerY + y, color, delta);
+				} else {
+					// Out
+				}
+			}
+		}
+	}
+	return img;
 }
 
 /////////////////////////////

@@ -5,6 +5,7 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #define Pi (3.1415925f)
 
@@ -17,6 +18,8 @@ float CosineInterpolation(float f);
 int MinimumInt(int i0, int i1);
 
 int MaximumInt(int i0, int i1);
+
+uint8_t SumClamp_uint8(const uint8_t a, const uint8_t b);
 
 /////////////////////////////
 // Rect
