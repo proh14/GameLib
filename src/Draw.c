@@ -645,17 +645,16 @@ void Draw_OverrideExit(int override) { g_DrawExitOverride = override; }
 // Draw_CreateImage
 //
 DrawImg Draw_CreateImage(int w, int h) {
-	DrawImage image;
 
 	// Create the image container
-	image       = malloc(sizeof(TDrawImage));
-	image->data = malloc(w * h * 4);
-	image->x    = 0;
-	image->y    = 0;
-	image->w    = w;
-	image->h    = h;
-	image->flip = 0;
-	image->tex  = -1;
+	DrawImage image = malloc(sizeof(TDrawImage));
+	image->data     = malloc(w * h * 4);
+	image->w        = w;
+	image->h        = h;
+	image->x        = -(image->w / 2);
+	image->y        = -(image->h / 2);
+	image->flip     = 0;
+	image->tex      = -1;
 
 	return ((DrawImg)image);
 }
@@ -665,18 +664,17 @@ DrawImg Draw_CreateImage(int w, int h) {
 //
 // Loads an image, giving a reference.
 DrawImg Draw_LoadImage(char *filename) {
-	DrawImage image;
 
 	// Try loading PNG images
 	if (EndsWith(filename, ".png") || EndsWith(filename, ".PNG")) {
-		image          = malloc(sizeof(TDrawImage));
-		unsigned error = lodepng_decode32_file(&image->data, (unsigned *)&image->w, (unsigned *)&image->h, filename);
+		DrawImage image = malloc(sizeof(TDrawImage));
+		unsigned error  = lodepng_decode32_file(&image->data, (unsigned *)&image->w, (unsigned *)&image->h, filename);
 		if (error) {
 			Print("Draw_LoadImage: PNG decoder error %u: %s on file %s\n", error, lodepng_error_text(error), filename);
 			return (NULL);
 		}
-		image->x    = -(int)(image->w / 2);
-		image->y    = -(int)(image->h / 2);
+		image->x    = -(image->w / 2);
+		image->y    = -(image->h / 2);
 		image->flip = 0;
 		image->tex  = -1;
 		return (DrawImg)image;
@@ -1011,6 +1009,7 @@ DrawImage Draw_DefaultFontImage(const ColorRgba color) {
 
 	// Create the image and colors
 	img = Draw_CreateImage(8 * 256, 8);
+	Draw_SetOffset(img, 0, 0);
 
 	// Draw the font
 	for (c = 0; c < 256; c++) {
