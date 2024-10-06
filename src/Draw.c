@@ -52,7 +52,7 @@
 // Image container.
 typedef struct TDrawImage TDrawImage, *DrawImage;
 struct TDrawImage {
-	unsigned char *data;
+	uint8_t *data;
 	int x, y;
 	int w, h;
 	int flip;
@@ -148,7 +148,7 @@ GLuint g_VertexObject;
 
 void Draw_ShowInfo();
 void Draw_SetMatrix(float matrix[16]);
-GLuint Draw_UploadGLTexture(int w, int h, unsigned char *pixels);
+GLuint Draw_UploadGLTexture(int w, int h, uint8_t *pixels);
 
 /////////////////////////////
 // Draw_Init
@@ -286,8 +286,8 @@ int Draw_Init(int width, int height, char *title, int pFps, int fps) {
 	glEnableVertexAttribArray(g_VertTexLoc);
 	glEnableVertexAttribArray(g_VertColorLoc);
 
-	unsigned char whiteTexData[4] = {255, 255, 255, 255};
-	g_WhiteTex                    = Draw_UploadGLTexture(1, 1, whiteTexData);
+	uint8_t whiteTexData[4] = {255, 255, 255, 255};
+	g_WhiteTex              = Draw_UploadGLTexture(1, 1, whiteTexData);
 
 #endif
 
@@ -366,7 +366,7 @@ void Draw_SetMatrix(float matrix[16]) {
 // Draw_UploadGLTexture
 //
 // Uploads a OpenGL texture.
-GLuint Draw_UploadGLTexture(int w, int h, unsigned char *pixels) {
+GLuint Draw_UploadGLTexture(int w, int h, uint8_t *pixels) {
 	GLuint tex;
 
 	// Generate OpenGL texture
@@ -426,7 +426,7 @@ void Draw_Flush() {
 // Draw_Clean
 //
 // Cleans the game window.
-void Draw_Clean(unsigned char r, unsigned char g, unsigned char b) {
+void Draw_Clean(uint8_t r, uint8_t g, uint8_t b) {
 #if USE_OpenGL
 	glClearColor(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -950,7 +950,7 @@ typedef struct {
 //
 // Creates an image with the default font.
 #include "FontData.h"
-DrawImage Draw_DefaultFontImage(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+DrawImage Draw_DefaultFontImage(const ColorRgba color) {
 	DrawImage img;
 	int x, y, c;
 
@@ -962,11 +962,11 @@ DrawImage Draw_DefaultFontImage(unsigned char r, unsigned char g, unsigned char 
 		for (y = 0; y < 8; y++) {
 			for (x = 0; x < 8; x++) {
 				int offset            = ((c * 8 + x) + (8 * 256 * y)) * 4;
-				img->data[offset + 0] = r;
-				img->data[offset + 1] = g;
-				img->data[offset + 2] = b;
+				img->data[offset + 0] = color[0];
+				img->data[offset + 1] = color[1];
+				img->data[offset + 2] = color[2];
 				if (((fontData_8x8[c * 8 + y] >> (7 - x)) & 0x01) == 1) {
-					img->data[offset + 3] = a;
+					img->data[offset + 3] = color[3];
 				} else {
 					img->data[offset + 3] = 0x00;
 				}
@@ -981,12 +981,11 @@ DrawImage Draw_DefaultFontImage(unsigned char r, unsigned char g, unsigned char 
 // Draw_DefaultFont
 //
 // Creates the default font.
-DrawFnt Draw_DefaultFont(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
-	DrawFont *font;
+DrawFnt Draw_DefaultFont(ColorRgba color) {
 
 	// Create the default font
-	font           = malloc(sizeof(DrawFont));
-	font->img      = Draw_DefaultFontImage(r, g, b, a);
+	DrawFont *font = malloc(sizeof(DrawFont));
+	font->img      = Draw_DefaultFontImage(color);
 	font->w        = 8;
 	font->h        = 8;
 	font->min      = 0;
@@ -1050,7 +1049,7 @@ void Draw_DrawText(DrawFnt f, char *text, int x, int y) {
 // Draw_SaveRGBAToBMP
 //
 //
-void Draw_SaveRGBAToBMP(char *filename, unsigned char *data, int width, int height) {
+void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height) {
 	SDL_Surface *surf;
 
 	// Create the surface
@@ -1067,9 +1066,9 @@ void Draw_SaveRGBAToBMP(char *filename, unsigned char *data, int width, int heig
 	ptr     = (Uint32 *)surf->pixels;
 	ptr_end = ptr + (surf->w * surf->h);
 	while (ptr < ptr_end) {
-		unsigned char temp;
-		unsigned char *pixel;
-		pixel    = (unsigned char *)ptr;
+		uint8_t temp;
+		uint8_t *pixel;
+		pixel    = (uint8_t *)ptr;
 		temp     = pixel[2];
 		pixel[2] = pixel[0];
 		pixel[0] = temp;
@@ -1087,7 +1086,7 @@ void Draw_SaveRGBAToBMP(char *filename, unsigned char *data, int width, int heig
 // Draw_SaveRGBAToPNG
 //
 //
-void Draw_SaveRGBAToPNG(char *filename, unsigned char *data, int width, int height) {
+void Draw_SaveRGBAToPNG(char *filename, uint8_t *data, int width, int height) {
 	unsigned error = lodepng_encode32_file(filename, data, width, height);
 	if (error) {
 		Print("Draw_SaveRGBAToPNG: Error %u: %s\n", error, lodepng_error_text(error));
@@ -1100,8 +1099,8 @@ void Draw_SaveRGBAToPNG(char *filename, unsigned char *data, int width, int heig
 //
 void Draw_SaveScreenshot(char *filename) {
 #if USE_OpenGL
-	unsigned char *pixelData;
-	unsigned char *image_line;
+	uint8_t *pixelData;
+	uint8_t *image_line;
 	int i, half_height, line_size;
 
 	pixelData = malloc(g_Width * g_Height * 4);

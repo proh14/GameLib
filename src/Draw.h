@@ -3,6 +3,8 @@
 #ifndef Draw_H
 #define Draw_H
 
+#include <stdint.h>
+
 /////////////////////////////
 // Draw_Init
 //
@@ -13,7 +15,7 @@ int Draw_Init(int width, int height, char *title, int pFps, int fps);
 // Draw_Clean
 //
 // Cleans the game window.
-void Draw_Clean(unsigned char r, unsigned char g, unsigned char b);
+void Draw_Clean(uint8_t r, uint8_t g, uint8_t b);
 
 /////////////////////////////
 // Draw_Loop
@@ -44,6 +46,7 @@ void Draw_Flush();
 /////////////
 // Reference to an image.
 typedef void *DrawImg;
+typedef uint8_t ColorRgba[4];
 
 /////////////////////////////
 // Draw_CreateImage
@@ -126,7 +129,7 @@ typedef void *DrawFnt;
 // Draw_DefaultFont
 //
 // Creates the default font.
-DrawFnt Draw_DefaultFont(unsigned char r, unsigned char g, unsigned char b, unsigned char a);
+DrawFnt Draw_DefaultFont(ColorRgba color);
 
 /////////////////////////////
 // Draw_LoadFont
@@ -149,13 +152,13 @@ void Draw_DrawText(DrawFnt f, char *text, int x, int y);
 // Draw_SaveRGBAToBMP
 //
 //
-void Draw_SaveRGBAToBMP(char *filename, unsigned char *data, int width, int height);
+void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height);
 
 /////////////////////////////
 // Draw_SaveRGBAToPNG
 //
 //
-void Draw_SaveRGBAToPNG(char *filename, unsigned char *data, int width, int height);
+void Draw_SaveRGBAToPNG(char *filename, uint8_t *data, int width, int height);
 
 /////////////////////////////
 // Draw_SaveScreenshot

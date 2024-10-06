@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
 	/////////////////////////////
 	// Load and initialize media.
 	//
-	font          = Draw_DefaultFont(255, 255, 255, 255);
+	font          = Draw_DefaultFont((ColorRgba){255, 255, 255, 255});
 	imgBackground = Draw_LoadImage("data/background.png");
 	Draw_SetOffset(imgBackground, 0, 0);
 	GameEnts_Init();
