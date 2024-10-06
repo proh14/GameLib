@@ -93,11 +93,13 @@ Entity Entity_New() {
 	e->collision = NULL;
 	e->overlap   = NULL;
 
-	e->A     = 0;
-	e->B     = 0;
-	e->C     = 0;
-	e->D     = 0;
-	e->E     = 0;
+	e->A = 0;
+	e->B = 0;
+	e->C = 0;
+	e->D = 0;
+	e->E = 0;
+	vec2_set(e->VecA, 0.0f, 0.0f);
+	vec2_set(e->VecB, 0.0f, 0.0f);
 	e->child = NULL;
 
 	e->next = NULL;
