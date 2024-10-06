@@ -67,11 +67,11 @@ int Audio_Init() {
 	}
 
 	// Open the audio device using the desired parameters
-	as.freq        = 44100;
-	as.format      = AUDIO_S16SYS;
-	as.channels    = 2;
-	as.samples     = 2048;
-	as.callback    = Audio_MixerCallback;
+	as.freq         = 44100;
+	as.format       = AUDIO_S16SYS;
+	as.channels     = 2;
+	as.samples      = 2048;
+	as.callback     = Audio_MixerCallback;
 	g_AudioDeviceID = SDL_OpenAudioDevice(NULL, 0, &as, &as2, 0);
 	if (g_AudioDeviceID == 0) {
 		Print("ERROR: Audio_Init: Failure opening audio. %s\n", SDL_GetError());
@@ -110,7 +110,7 @@ static void Audio_MixerCallback(void *ud, uint8_t *stream, int l) {
 
 	// Mix all the channels
 	previousChannel = NULL;
-	chan     = g_Channels;
+	chan            = g_Channels;
 	while (chan) {
 		if (!chan->wave) {
 			// Remove finished channels
@@ -189,7 +189,7 @@ static void Audio_MixerCallback(void *ud, uint8_t *stream, int l) {
 
 		// Next channel
 		previousChannel = chan;
-		chan     = chan->next;
+		chan            = chan->next;
 	}
 }
 
@@ -335,11 +335,11 @@ AudioChn Audio_PlaySound(AudioSnd snd, float leftVolume, float rightVolume, int 
 	}
 
 	// Initialize the channel
-	chan->wave     = wave;
-	chan->pos      = 0;
+	chan->wave        = wave;
+	chan->pos         = 0;
 	chan->rightVolume = (uint8_t)(rightVolume * 255.0f);
 	chan->leftVolume  = (uint8_t)(leftVolume * 255.0f);
-	chan->loop     = loop;
+	chan->loop        = loop;
 
 	// Include in sounds list
 	chan->next = g_Channels;

@@ -75,7 +75,7 @@ int GameMap_LoadLevel(char *filename, int res) {
 	// Build the map
 	map = malloc(sizeof(char) * width * height);
 	memset(map, 0, width * height);
-#define MAP(x, y) map[(x) + ((y)*width)]
+#define MAP(x, y) map[(x) + ((y) * width)]
 	j = 0;
 	do {
 		len = ReadLine(file, line, MaxLineLen);

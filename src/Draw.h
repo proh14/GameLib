@@ -107,7 +107,8 @@ void Draw_DrawImgPartHoriz(DrawImg img, int x, int y, int w, int i, const float 
 //
 //
 void Draw_ImgParallax(
-	DrawImg img, int imgSize[2], const int imgOffset[2], const float parallaxFactor[2], const int gamePos[2], const int gameSize[2]);
+	DrawImg img, int imgSize[2], const int imgOffset[2], const float parallaxFactor[2], const int gamePos[2],
+	const int gameSize[2]);
 
 /////////////////////////////
 // Draw_SetColor
