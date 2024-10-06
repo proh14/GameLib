@@ -9,7 +9,7 @@
 // Draw_Init
 //
 // Initializes the game window.
-int Draw_Init(int width, int height, char *title, int pFps, int fps);
+int Draw_Init(int width, int height, const char *title, int pFps, int fps);
 
 /////////////////////////////
 // Draw_Clean
@@ -85,13 +85,13 @@ int Draw_GetFlip(DrawImg img);
 // Draw_DrawBoxFilled
 //
 //
-DrawImg Draw_DrawBoxFilled(DrawImg img, int x1, int y1, int x2, int y2, ColorRgba color);
+DrawImg Draw_DrawBoxFilled(DrawImg img, int x1, int y1, int x2, int y2, const ColorRgba color);
 
 /////////////////////////////
 // Draw_DrawBox
 //
 //
-DrawImg Draw_DrawBox(DrawImg img, int x1, int y1, int x2, int y2, ColorRgba color);
+DrawImg Draw_DrawBox(DrawImg img, int x1, int y1, int x2, int y2, const ColorRgba color);
 
 /////////////////////////////
 // Draw_DrawImg
@@ -158,19 +158,19 @@ void Draw_FontScale(DrawFnt f, const float scale[2]);
 // Draw_DrawText
 //
 // Draws text using a font
-void Draw_DrawText(DrawFnt f, char *text, int x, int y);
+void Draw_DrawText(DrawFnt f, const char *text, int x, int y);
 
 /////////////////////////////
 // Draw_SaveRGBAToBMP
 //
 //
-void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height);
+void Draw_SaveRGBAToBMP(const char *filename, const uint8_t *data, int width, int height);
 
 /////////////////////////////
 // Draw_SaveRGBAToPNG
 //
 //
-void Draw_SaveRGBAToPNG(char *filename, uint8_t *data, int width, int height);
+void Draw_SaveRGBAToPNG(const char *filename, const uint8_t *data, int width, int height);
 
 /////////////////////////////
 // Draw_SaveScreenshot

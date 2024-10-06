@@ -148,13 +148,13 @@ GLuint g_VertexObject;
 
 void Draw_ShowInfo();
 void Draw_SetMatrix(float matrix[16]);
-GLuint Draw_UploadGLTexture(int w, int h, uint8_t *pixels);
+GLuint Draw_UploadGLTexture(int w, int h, const uint8_t *pixels);
 
 /////////////////////////////
 // Draw_Init
 //
 // Initializes the game window.
-int Draw_Init(int width, int height, char *title, int pFps, int fps) {
+int Draw_Init(const int width, const int height, const char *title, const int pFps, const int fps) {
 
 #ifdef WIN32
 #ifndef ATTACH_PARENT_PROCESS
@@ -209,7 +209,7 @@ int Draw_Init(int width, int height, char *title, int pFps, int fps) {
 	glDisable(GL_DEPTH_TEST);
 	glDepthMask(GL_FALSE);
 
-	// Triplebuffer swap
+	// TripleBuffer swap
 	glClear(GL_COLOR_BUFFER_BIT);
 	SDL_GL_SwapWindow(g_Window);
 	glClear(GL_COLOR_BUFFER_BIT);
@@ -318,10 +318,9 @@ int Draw_Init(int width, int height, char *title, int pFps, int fps) {
 //
 // Show device information
 void Draw_ShowInfo() {
-	char *str;
 	Print("\n*********************************\n");
 	Print("*** Draw Info\n");
-	str = (char *)glGetString(GL_VENDOR);
+	char *str = (char *)glGetString(GL_VENDOR);
 	Print(" Vendor: %s\n", str);
 	str = (char *)glGetString(GL_RENDERER);
 	Print(" Renderer: %s\n", str);
@@ -366,7 +365,7 @@ void Draw_SetMatrix(float matrix[16]) {
 // Draw_UploadGLTexture
 //
 // Uploads a OpenGL texture.
-GLuint Draw_UploadGLTexture(int w, int h, uint8_t *pixels) {
+GLuint Draw_UploadGLTexture(int w, const int h, const uint8_t *pixels) {
 	GLuint tex;
 
 	// Generate OpenGL texture
@@ -598,19 +597,19 @@ void Draw_Loop(void (*proc)(void *data), void (*draw)(void *data, float f), void
 	}
 	g_DrawLooping = 1;
 #ifndef EMSCRIPTEN
-	long long procTime1, procTime2, drawTime1, drawTime2;
-	g_AccumulatedTime = g_ProcTFrame;
-	procTime1 = drawTime1 = Time_GetTime();
+	long long drawTime1;
+	g_AccumulatedTime   = g_ProcTFrame;
+	long long procTime1 = drawTime1 = Time_GetTime();
 	while (Draw_LoopIteration()) {
 
 		// Wait to round g_DrawTFrame
-		drawTime2 = Time_GetTime();
+		long long drawTime2 = Time_GetTime();
 		Time_Pause(g_DrawTFrame - (drawTime2 - drawTime1));
 		drawTime2 = Time_GetTime();
 		drawTime1 = drawTime2;
 
 		// Update time
-		procTime2 = Time_GetTime();
+		long long procTime2 = Time_GetTime();
 		g_AccumulatedTime += procTime2 - procTime1;
 		procTime1 = procTime2;
 	}
@@ -734,8 +733,8 @@ int Draw_GetFlip(DrawImg img) {
 // Draw_DrawBoxFilled
 //
 //
-DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2, const int y2, ColorRgba color) {
-	const DrawImage image = img;
+DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2, const int y2, const ColorRgba color) {
+	DrawImage image = img;
 
 	for (int y = y1; y < y2; y++) {
 		for (int x = x1; x < x2; x++) {
@@ -754,8 +753,8 @@ DrawImg Draw_DrawBoxFilled(DrawImg img, const int x1, const int y1, const int x2
 // Draw_DrawBox
 //
 //
-DrawImg Draw_DrawBox(DrawImg img, const int x1, const int y1, const int x2, const int y2, ColorRgba color) {
-	const DrawImage image = img;
+DrawImg Draw_DrawBox(DrawImg img, const int x1, const int y1, const int x2, const int y2, const ColorRgba color) {
+	DrawImage image = img;
 
 	for (int x = x1; x < x2; x++) {
 		const int offset1        = (x + y1 * image->w) * 4;
@@ -791,26 +790,25 @@ DrawImg Draw_DrawBox(DrawImg img, const int x1, const int y1, const int x2, cons
 // Draws an image.
 void Draw_DrawImg(DrawImg img, int x, int y, const float scale[2]) {
 	DrawImage image = img;
-	float x1, x2, y1, y2;
 	float u1 = 0.0f, u2 = 1.0f;
 	float v1 = 0.0f, v2 = 1.0f;
 
 	// Prepare screen coordinates
-	x1 = (float)x + ((float)image->x * scale[0]);
-	y1 = (float)y + ((float)image->y * scale[1]);
-	x2 = x1 + ((float)image->w * scale[0]);
-	y2 = y1 + ((float)image->h * scale[1]);
+	const float x1 = (float)x + ((float)image->x * scale[0]);
+	const float y1 = (float)y + ((float)image->y * scale[1]);
+	const float x2 = x1 + ((float)image->w * scale[0]);
+	const float y2 = y1 + ((float)image->h * scale[1]);
 
 	// Apply flipping
 	if (image->flip & 1) {
-		float t = u1;
-		u1      = u2;
-		u2      = t;
+		const float t = u1;
+		u1            = u2;
+		u2            = t;
 	}
 	if (image->flip & 2) {
-		float t = v1;
-		v1      = v2;
-		v2      = t;
+		const float t = v1;
+		v1            = v2;
+		v2            = t;
 	}
 
 	// Draw a quad
@@ -827,26 +825,25 @@ void Draw_DrawImg(DrawImg img, int x, int y, const float scale[2]) {
 // Draws an image, resizing.
 void Draw_DrawImgResized(DrawImg img, int x, int y, float w, float h) {
 	DrawImage image = img;
-	float x1, x2, y1, y2;
 	float u1 = 0.0f, u2 = 1.0f;
 	float v1 = 0.0f, v2 = 1.0f;
 
 	// Prepare
-	x1 = (float)x + (float)image->x;
-	y1 = (float)y + (float)image->y;
-	x2 = x1 + w;
-	y2 = y1 + h;
+	const float x1 = (float)x + (float)image->x;
+	const float y1 = (float)y + (float)image->y;
+	const float x2 = x1 + w;
+	const float y2 = y1 + h;
 
 	// Apply flipping
 	if (image->flip & 1) {
-		float t = u1;
-		u1      = u2;
-		u2      = t;
+		const float t = u1;
+		u1            = u2;
+		u2            = t;
 	}
 	if (image->flip & 2) {
-		float t = v1;
-		v1      = v2;
-		v2      = t;
+		const float t = v1;
+		v1            = v2;
+		v2            = t;
 	}
 
 	// Draw a quad
@@ -863,34 +860,31 @@ void Draw_DrawImgResized(DrawImg img, int x, int y, float w, float h) {
 // Draws an image part.
 void Draw_DrawImgPart(DrawImg img, int x, int y, int w, int h, int i, int j, const float scale[2]) {
 	DrawImage image = img;
-	float x1, x2, y1, y2;
-	float us, u1, u2;
-	float vs, v1, v2;
 
 	// Prepare screen coordinates
-	x1 = (float)x + ((float)image->x * scale[0]);
-	y1 = (float)y + ((float)image->y * scale[1]);
-	x2 = x1 + ((float)w * scale[0]);
-	y2 = y1 + ((float)h * scale[1]);
+	const float x1 = (float)x + ((float)image->x * scale[0]);
+	const float y1 = (float)y + ((float)image->y * scale[1]);
+	const float x2 = x1 + ((float)w * scale[0]);
+	const float y2 = y1 + ((float)h * scale[1]);
 
 	// Prepare image coordinates
-	us = 1.0f / (float)image->w;
-	u1 = us * (float)(i * w);
-	u2 = u1 + (us * (float)w);
-	vs = 1.0f / (float)image->h;
-	v1 = vs * (float)(j * h);
-	v2 = v1 + (vs * (float)h);
+	const float us = 1.0f / (float)image->w;
+	float u1       = us * (float)(i * w);
+	float u2       = u1 + (us * (float)w);
+	const float vs = 1.0f / (float)image->h;
+	float v1       = vs * (float)(j * h);
+	float v2       = v1 + (vs * (float)h);
 
 	// Apply flipping
 	if (image->flip & 1) {
-		float t = u1;
-		u1      = u2;
-		u2      = t;
+		const float t = u1;
+		u1            = u2;
+		u2            = t;
 	}
 	if (image->flip & 2) {
-		float t = v1;
-		v1      = v2;
-		v2      = t;
+		const float t = v1;
+		v1            = v2;
+		v2            = t;
 	}
 
 	// Draw a quad
@@ -907,31 +901,29 @@ void Draw_DrawImgPart(DrawImg img, int x, int y, int w, int h, int i, int j, con
 // Draws an image part horizontally.
 void Draw_DrawImgPartHoriz(DrawImg img, int x, int y, int w, int i, const float scale[2]) {
 	DrawImage image = img;
-	float x1, x2, y1, y2;
-	float us, u1, u2;
 	float v1 = 0.0f, v2 = 1.0f;
 
 	// Prepare screen coordinates
-	x1 = (float)x + ((float)image->x * scale[0]);
-	y1 = (float)y + ((float)image->y * scale[1]);
-	x2 = x1 + ((float)w * scale[0]);
-	y2 = y1 + ((float)image->h * scale[1]);
+	const float x1 = (float)x + ((float)image->x * scale[0]);
+	const float y1 = (float)y + ((float)image->y * scale[1]);
+	const float x2 = x1 + ((float)w * scale[0]);
+	const float y2 = y1 + ((float)image->h * scale[1]);
 
 	// Prepare image coordinates
-	us = 1.0f / (float)image->w;
-	u1 = us * (float)(i * w);
-	u2 = u1 + (us * (float)w);
+	const float us = 1.0f / (float)image->w;
+	float u1       = us * (float)(i * w);
+	float u2       = u1 + (us * (float)w);
 
 	// Apply flipping
 	if (image->flip & 1) {
-		float t = u1;
-		u1      = u2;
-		u2      = t;
+		const float t = u1;
+		u1            = u2;
+		u2            = t;
 	}
 	if (image->flip & 2) {
-		float t = v1;
-		v1      = v2;
-		v2      = t;
+		const float t = v1;
+		v1            = v2;
+		v2            = t;
 	}
 
 	// Draw a quad
@@ -951,7 +943,6 @@ void Draw_ImgParallax(
 	const int gameSize[2]) {
 	int parallaxPos[2];
 	int multiply[2];
-	int x, y;
 
 	parallaxPos[0] = (int)((float)gamePos[0] * parallaxFactor[0]) + imgOffset[0];
 	parallaxPos[1] = (int)((float)gamePos[1] * parallaxFactor[1]) + imgOffset[1];
@@ -965,9 +956,9 @@ void Draw_ImgParallax(
 		multiply[1]--;
 	}
 
-	y = (multiply[1] * imgSize[1]) - parallaxPos[1];
+	int y = (multiply[1] * imgSize[1]) - parallaxPos[1];
 	while (y < gameSize[1]) {
-		x = (multiply[0] * imgSize[0]) - parallaxPos[0];
+		int x = (multiply[0] * imgSize[0]) - parallaxPos[0];
 		while (x < gameSize[0]) {
 			Draw_DrawImgResized(img, x, y, (float)imgSize[0], (float)imgSize[1]);
 			x += imgSize[0];
@@ -1004,18 +995,16 @@ typedef struct {
 // Creates an image with the default font.
 #include "FontData.h"
 DrawImage Draw_DefaultFontImage(const ColorRgba color) {
-	DrawImage img;
-	int x, y, c;
 
 	// Create the image and colors
-	img = Draw_CreateImage(8 * 256, 8);
+	DrawImage img = Draw_CreateImage(8 * 256, 8);
 	Draw_SetOffset(img, 0, 0);
 
 	// Draw the font
-	for (c = 0; c < 256; c++) {
-		for (y = 0; y < 8; y++) {
-			for (x = 0; x < 8; x++) {
-				int offset            = ((c * 8 + x) + (8 * 256 * y)) * 4;
+	for (int c = 0; c < 256; c++) {
+		for (int y = 0; y < 8; y++) {
+			for (int x = 0; x < 8; x++) {
+				const int offset      = ((c * 8 + x) + (8 * 256 * y)) * 4;
 				img->data[offset + 0] = color[0];
 				img->data[offset + 1] = color[1];
 				img->data[offset + 2] = color[2];
@@ -1055,10 +1044,9 @@ DrawFnt Draw_DefaultFont(ColorRgba color) {
 //
 // Load a font from a file.
 DrawFnt Draw_LoadFont(char *fichero, int min, int max) {
-	DrawFont *font;
 
 	// Create the font form the image
-	font           = malloc(sizeof(DrawFont));
+	DrawFont *font = malloc(sizeof(DrawFont));
 	font->img      = Draw_LoadImage(fichero);
 	font->w        = font->img->w / (max - min);
 	font->h        = font->img->h;
@@ -1084,12 +1072,11 @@ void Draw_FontScale(DrawFnt f, const float scale[2]) {
 // Draw_DrawText
 //
 // Draws text using a font.
-void Draw_DrawText(DrawFnt f, char *text, int x, int y) {
+void Draw_DrawText(DrawFnt f, const char *text, int x, int y) {
 	DrawFont *font = f;
-	char *ptr;
 
 	// Iterate the string
-	ptr = text;
+	const char *ptr = text;
 	while (*ptr) {
 		if ((*ptr) < font->max) {
 			Draw_DrawImgPartHoriz(font->img, x, y, font->w, (*ptr) - font->min, font->scale);
@@ -1103,11 +1090,10 @@ void Draw_DrawText(DrawFnt f, char *text, int x, int y) {
 // Draw_SaveRGBAToBMP
 //
 //
-void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height) {
-	SDL_Surface *surf;
+void Draw_SaveRGBAToBMP(const char *filename, const uint8_t *data, const int width, const int height) {
 
 	// Create the surface
-	surf                 = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0, 0, 0, 0);
+	SDL_Surface *surf    = SDL_CreateRGBSurface(SDL_SWSURFACE, width, height, 32, 0, 0, 0, 0);
 	surf->format->Amask  = 0xFF000000;
 	surf->format->Ashift = 24;
 	// SDL_SetAlpha(surf, GL_SRC_ALPHA, 255);
@@ -1116,16 +1102,13 @@ void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height) {
 	SDL_UnlockSurface(surf);
 
 	// Swap RGB to BGR
-	Uint32 *ptr, *ptr_end;
-	ptr     = (Uint32 *)surf->pixels;
-	ptr_end = ptr + (surf->w * surf->h);
+	Uint32 *ptr           = (Uint32 *)surf->pixels;
+	const Uint32 *ptr_end = ptr + (surf->w * surf->h);
 	while (ptr < ptr_end) {
-		uint8_t temp;
-		uint8_t *pixel;
-		pixel    = (uint8_t *)ptr;
-		temp     = pixel[2];
-		pixel[2] = pixel[0];
-		pixel[0] = temp;
+		uint8_t *pixel     = (uint8_t *)ptr;
+		const uint8_t temp = pixel[2];
+		pixel[2]           = pixel[0];
+		pixel[0]           = temp;
 		ptr++;
 	}
 
@@ -1140,7 +1123,7 @@ void Draw_SaveRGBAToBMP(char *filename, uint8_t *data, int width, int height) {
 // Draw_SaveRGBAToPNG
 //
 //
-void Draw_SaveRGBAToPNG(char *filename, uint8_t *data, int width, int height) {
+void Draw_SaveRGBAToPNG(const char *filename, const uint8_t *data, const int width, const int height) {
 	unsigned error = lodepng_encode32_file(filename, data, width, height);
 	if (error) {
 		Print("Draw_SaveRGBAToPNG: Error %u: %s\n", error, lodepng_error_text(error));
