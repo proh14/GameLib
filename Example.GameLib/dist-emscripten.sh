@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if test -f /c/emsdk/emsdk_env.sh; then
-    source /c/emsdk/emsdk_env.sh
+    . /c/emsdk/emsdk_env.sh
 fi
 
 if test -d cmake-build-emscripten; then
@@ -9,7 +9,7 @@ if test -d cmake-build-emscripten; then
 fi
 mkdir cmake-build-emscripten
 
-cd cmake-build-emscripten
+cd cmake-build-emscripten || exit
 emcmake cmake ..
 make
 cd ..
