@@ -8,6 +8,8 @@
 
 #include "GameLib.h"
 
+#include <float.h>
+
 // Globals
 Entity *g_Entity                   = NULL;
 int *g_EntityFlag                  = NULL;
@@ -44,6 +46,8 @@ struct TParallaxBackground {
 TParallaxBackground g_ParallaxBackground[MaxParallaxBackgrounds];
 int g_NumParallaxBackgrounds = 0;
 
+TBucketGrid g_BucketGrid;
+
 /////////////////////////////
 // GameLib_Init
 //
@@ -66,7 +70,50 @@ int GameLib_Init(int w, int h, char *title, int pFps, int fps) {
 
 	g_ProcFt = 1000 / pFps;
 
+	BucketGrid_Init(&g_BucketGrid, 1, 1, 64, 32, 32);
+
 	return (1);
+}
+
+/////////////////////////////
+// GameLib_PrepareSize
+//
+//
+void GameLib_PrepareSize(const float x1, const float y1, const float x2, const float y2) {
+	const float bucketSize = 64;
+
+	const float width       = x2 - x1;
+	const float height      = y2 - y1;
+	const int widthBuckets  = (int)ceilf(width / bucketSize);
+	const int heightBuckets = (int)ceilf(height / bucketSize);
+
+	BucketGrid_DeInit(&g_BucketGrid);
+	BucketGrid_Init(&g_BucketGrid, widthBuckets, heightBuckets, bucketSize, -x1, -y1);
+	for (int i = 0; i < g_NumEntities; i++) {
+		BucketGrid_AddItem(&g_BucketGrid, &g_Entity[i]->bbox);
+	}
+}
+
+/////////////////////////////
+// GameLib_CheckSize
+//
+//
+void GameLib_CheckSize() {
+	float xMin = FLT_MAX;
+	float yMin = FLT_MAX;
+	float xMax = FLT_MIN;
+	float yMax = FLT_MIN;
+	for (int i = 0; i < g_NumEntities; i++) {
+		if (g_Entity[i]->bbox.x1 < xMin)
+			xMin = g_Entity[i]->bbox.x1;
+		if (g_Entity[i]->bbox.x2 > xMax)
+			xMax = g_Entity[i]->bbox.x2;
+		if (g_Entity[i]->bbox.y1 < yMin)
+			yMin = g_Entity[i]->bbox.y1;
+		if (g_Entity[i]->bbox.y2 > yMax)
+			yMax = g_Entity[i]->bbox.y2;
+	}
+	GameLib_PrepareSize(xMin, yMin, xMax, yMax);
 }
 
 /////////////////////////////
@@ -108,6 +155,9 @@ void GameLib_AddEntity(Entity e) {
 	Entity_MarkUpdateLight(e, g_Entity, g_NumEntities);
 
 	Entity_CalcBBox(e);
+	if (BucketGrid_AddItem(&g_BucketGrid, &e->bbox) == 0) {
+		GameLib_CheckSize();
+	}
 
 	Entity_Init(e);
 }
@@ -152,6 +202,7 @@ int GameLib_DelEntity(Entity e) {
 		g_EntityFlag[i] = -1;
 	} else {
 		// Delete now
+		BucketGrid_RemoveItem(&g_BucketGrid, &g_Entity[i]->bbox);
 		Entity_Destroy(e);
 	}
 	return (1);
@@ -172,6 +223,7 @@ void GameLib_Compactate() {
 			continue;
 		}
 		if (g_EntityFlag[i] == -1) {
+			BucketGrid_RemoveItem(&g_BucketGrid, &g_Entity[i]->bbox);
 			Entity_Destroy(g_Entity[i]);
 			continue;
 		}
@@ -191,7 +243,7 @@ void GameLib_Compactate() {
 // Process the loop.
 void GameLib_ProcLoop(void *data) {
 	int i, j;
-	int repeat, count;
+	int repeat;
 	long long time;
 
 	// Step the gamePosition
@@ -212,30 +264,42 @@ void GameLib_ProcLoop(void *data) {
 	}
 	GameLib_Compactate();
 	g_EntitiesLock = 0;
+
+	if (BucketGrid_ProcessChanged(&g_BucketGrid) == 0) {
+		Print("Rebuild BucketGrid");
+		BucketGrid_Clean(&g_BucketGrid);
+		for (int i = 0; i < g_NumEntities; i++) {
+			BucketGrid_AddItem(&g_BucketGrid, &g_Entity[i]->bbox);
+		}
+	}
+
 	t_proc += Time_GetTime() - time;
 
 	// Collisions between entities
 	time           = Time_GetTime();
 	g_EntitiesLock = 1;
-	count          = 0;
+	int count      = 0;
+	int maxCount   = 50;
 	do {
 		repeat                 = 0;
 		CollisionInfo collInfo = NULL;
 		for (i = 0; i < g_NumEntities; i++) {
-			if (!(g_Entity[i]->flags & EntityFlag_Collision) || g_Entity[i]->mass < 0.0f) {
+			Entity ent = g_Entity[i];
+			if (!(ent->flags & EntityFlag_Collision) || ent->mass < 0.0f) {
 				continue;
 			}
-			if (g_Entity[i]->vel[0] <= 0.0f && g_Entity[i]->vel[0] >= -0.0f && g_Entity[i]->vel[1] <= 0.0f &&
-			    g_Entity[i]->vel[1] >= -0.0f) {
+			if (ent->vel[0] <= 0.0f && ent->vel[0] >= -0.0f && ent->vel[1] <= 0.0f && ent->vel[1] >= -0.0f) {
 				continue;
 			}
-			for (j = 0; j < g_NumEntities; j++) {
-				if (i == j || !(g_Entity[j]->flags & EntityFlag_Collision) ||
-				    CollisionInfo_CheckRepetition(collInfo, g_Entity[i], g_Entity[j]) ||
-				    !Entity_BBoxIntersect(g_Entity[i], g_Entity[j])) {
+			TBucket bucket;
+			BucketGrid_Query(&g_BucketGrid, &ent->bbox, &bucket);
+			for (j = 0; j < bucket.count; j++) {
+				Entity entCollision = bucket.bbox[j]->parent;
+				if (ent == entCollision || !(entCollision->flags & EntityFlag_Collision) ||
+				    CollisionInfo_CheckRepetition(collInfo, ent, entCollision)) {
 					continue;
 				}
-				Entity_CheckCollision(g_Entity[i], g_Entity[j], &collInfo);
+				Entity_CheckCollision(ent, entCollision, &collInfo);
 			}
 		}
 		if (Entity_CollisionInfoResponse(collInfo)) {
@@ -243,24 +307,27 @@ void GameLib_ProcLoop(void *data) {
 		}
 		CollisionInfo_Destroy(&collInfo);
 		count++;
-	} while (repeat && count < 50);
+	} while (repeat && count < maxCount);
 
 	// Stop remaining collisions
-	if (count == 10) {
+	if (count >= maxCount) {
 		for (i = 0; i < g_NumEntities; i++) {
-			if (!(g_Entity[i]->flags & EntityFlag_Collision) || g_Entity[i]->mass < 0.0f) {
+			Entity ent = g_Entity[i];
+			if (!(ent->flags & EntityFlag_Collision) || ent->mass < 0.0f) {
 				continue;
 			}
-			for (j = 0; j < g_NumEntities; j++) {
-				if (i == j || !(g_Entity[j]->flags & EntityFlag_Collision) ||
-				    !Entity_BBoxIntersect(g_Entity[i], g_Entity[j])) {
+			TBucket bucket;
+			BucketGrid_Query(&g_BucketGrid, &ent->bbox, &bucket);
+			for (j = 0; j < bucket.count; j++) {
+				Entity entCollision = bucket.bbox[j]->parent;
+				if (ent == entCollision || !(entCollision->flags & EntityFlag_Collision)) {
 					continue;
 				}
-				if (Entity_CheckCollision(g_Entity[i], g_Entity[j], NULL)) {
-					vec2_set(g_Entity[i]->vel, 0, 0);
-					Entity_CalcBBox(g_Entity[i]);
-					vec2_set(g_Entity[j]->vel, 0, 0);
-					Entity_CalcBBox(g_Entity[j]);
+				if (Entity_CheckCollision(ent, entCollision, NULL)) {
+					vec2_set(ent->vel, 0, 0);
+					Entity_CalcBBox(ent);
+					vec2_set(entCollision->vel, 0, 0);
+					Entity_CalcBBox(entCollision);
 				}
 			}
 		}
@@ -273,14 +340,18 @@ void GameLib_ProcLoop(void *data) {
 	time           = Time_GetTime();
 	g_EntitiesLock = 1;
 	for (i = 0; i < g_NumEntities; i++) {
-		if (!(g_Entity[i]->flags & EntityFlag_Overlap) || g_Entity[i]->mass < 0.0f) {
+		Entity ent = g_Entity[i];
+		if (!(ent->flags & EntityFlag_Overlap) || ent->mass < 0.0f) {
 			continue;
 		}
-		for (j = 0; j < g_NumEntities; j++) {
-			if (!(g_Entity[j]->flags & EntityFlag_Overlap) || i == j) {
+		TBucket bucket;
+		BucketGrid_Query(&g_BucketGrid, &ent->bbox, &bucket);
+		for (j = 0; j < bucket.count; j++) {
+			Entity entCollision = bucket.bbox[j]->parent;
+			if (!(entCollision->flags & EntityFlag_Overlap) || ent == entCollision) {
 				continue;
 			}
-			Entity_Overlaps(g_Entity[i], g_Entity[j]);
+			Entity_Overlaps(ent, entCollision);
 		}
 	}
 	GameLib_Compactate();
@@ -288,14 +359,13 @@ void GameLib_ProcLoop(void *data) {
 	t_over += Time_GetTime() - time;
 
 	// Sort
-	int n, n2, swap;
-	n = g_NumEntities;
+	int n = g_NumEntities;
 	do {
-		n2 = 0;
+		int n2 = 0;
 		for (i = 1; i < n; i++) {
 			Entity ent1 = g_Entity[i - 1];
 			Entity ent2 = g_Entity[i];
-			swap        = 0;
+			int swap    = 0;
 			if (ent1->zorder > ent2->zorder) {
 				// Lower level
 				swap = 1;
@@ -303,8 +373,8 @@ void GameLib_ProcLoop(void *data) {
 				// Upper level
 			} else {
 				// Same level
-				float y1 = ent1->pos[1] + ent1->sortYOffset;
-				float y2 = ent2->pos[1] + ent2->sortYOffset;
+				const float y1 = ent1->pos[1] + ent1->sortYOffset;
+				const float y2 = ent2->pos[1] + ent2->sortYOffset;
 				if (y1 == y2) {
 					if (ent1->pos[0] < ent2->pos[0]) {
 						swap = 1;
@@ -314,8 +384,7 @@ void GameLib_ProcLoop(void *data) {
 				}
 			}
 			if (swap) {
-				Entity ent;
-				ent             = g_Entity[i];
+				Entity ent      = g_Entity[i];
 				g_Entity[i]     = g_Entity[i - 1];
 				g_Entity[i - 1] = ent;
 				n2              = i;
@@ -442,11 +511,11 @@ void GameLib_DrawLoop(void *data, float f) {
 // GameLib_Loop
 //
 // Loops the game.
-void GameLib_Loop(void (*gameproc)(), void (*gamepostproc)(), void (*gamepredraw)(float f), void (*gamedraw)(float f)) {
-	g_GameProcFunc     = gameproc;
-	g_GamePostProcFunc = gamepostproc;
-	g_GamePreDrawFunc  = gamepredraw;
-	g_GameDrawFunc     = gamedraw;
+void GameLib_Loop(void (*gameProc)(), void (*gamePostProc)(), void (*gamePreDraw)(float f), void (*gameDraw)(float f)) {
+	g_GameProcFunc     = gameProc;
+	g_GamePostProcFunc = gamePostProc;
+	g_GamePreDrawFunc  = gamePreDraw;
+	g_GameDrawFunc     = gameDraw;
 	t_proc             = 0;
 	t_col              = 0;
 	t_over             = 0;
@@ -503,10 +572,10 @@ void GameLib_MoveToPos(vec2 pos, float f) {
 	GameLib_MoveToPosH(pos, f);
 	GameLib_MoveToPosV(pos, f);
 }
-void GameLib_MoveToPosH(const vec2 pos, float f) {
+void GameLib_MoveToPosH(const vec2 pos, const float f) {
 	g_GamePos1[0] = g_GamePos1[0] + (pos[0] - (g_GamePos1[0] + (g_GameSize[0] / 2.0f))) * f;
 }
-void GameLib_MoveToPosV(const vec2 pos, float f) {
+void GameLib_MoveToPosV(const vec2 pos, const float f) {
 	g_GamePos1[1] = g_GamePos1[1] + (pos[1] - (g_GamePos1[1] + (g_GameSize[1] / 2.0f))) * f;
 }
 
@@ -515,15 +584,15 @@ void GameLib_MoveToPosV(const vec2 pos, float f) {
 //
 // Deletes every entity.
 void GameLib_DelEnts() {
-	int i;
-
-	for (i = 0; i < g_NumEntities; i++) {
+	for (int i = 0; i < g_NumEntities; i++) {
 		if (!g_Entity[i]) {
 			continue;
 		}
 		Entity_Destroy(g_Entity[i]);
 	}
 	g_NumEntities = 0;
+	BucketGrid_DeInit(&g_BucketGrid);
+	BucketGrid_Init(&g_BucketGrid, 1, 1, 100, 50, 50);
 }
 
 /////////////////////////////
@@ -531,8 +600,7 @@ void GameLib_DelEnts() {
 //
 // Iterates every entity.
 void GameLib_ForEachEnt(int (*func)(Entity ent)) {
-	int i;
-	for (i = 0; i < g_NumEntities; i++) {
+	for (int i = 0; i < g_NumEntities; i++) {
 		if (!g_Entity[i]) {
 			continue;
 		}
@@ -547,9 +615,8 @@ void GameLib_ForEachEnt(int (*func)(Entity ent)) {
 //
 // Searches throught the entities.
 Entity GameLib_SearchEnt(int (*func)(Entity ent, void *d), void *d) {
-	int i;
 	Entity ent = NULL;
-	for (i = 0; i < g_NumEntities; i++) {
+	for (int i = 0; i < g_NumEntities; i++) {
 		if (!g_Entity[i]) {
 			continue;
 		}
@@ -569,13 +636,12 @@ int GameLib_EntityCustomCheckCollision(Entity ent, vec2 vel) {
 	int collision          = 0;
 	CollisionInfo collInfo = NULL;
 	vec2 originalVel;
-	int j;
 
 	vec2_copy(originalVel, ent->vel);
 	vec2_copy(ent->vel, vel);
 	Entity_CalcBBox(ent);
 
-	for (j = 0; j < g_NumEntities; j++) {
+	for (int j = 0; j < g_NumEntities; j++) {
 		if (!(g_Entity[j]->flags & EntityFlag_Collision) || !Entity_BBoxIntersect(ent, g_Entity[j])) {
 			continue;
 		}
@@ -598,27 +664,26 @@ int GameLib_EntityCustomCheckCollision(Entity ent, vec2 vel) {
 //
 //
 void GameLib_PlaySound(AudioSnd snd, int x, int y) {
-	float vLeft, vRight, dx, dy;
-	int r, cx, cy, off;
+	int r;
 
 	// Get the screen context
-	cx = g_GamePos1[0] + g_GameSize[0] / 2;
-	cy = g_GamePos1[1] + g_GameSize[1] / 2;
+	int cx = g_GamePos1[0] + g_GameSize[0] / 2;
+	int cy = g_GamePos1[1] + g_GameSize[1] / 2;
 	if (g_GameSize[0] > g_GameSize[1]) {
 		r = g_GameSize[0] / 2;
 	} else {
 		r = g_GameSize[1] / 2;
 	}
-	r   = r * 1.2f;
-	off = r / 10.0f;
+	r       = r * 1.2f;
+	int off = r / 10.0f;
 
 	// Calculate volumes
-	dx     = x - (cx + off);
-	dy     = y - (cy);
-	vRight = 1.0f - (sqrtf(dx * dx + dy * dy) / (float)r);
-	dx     = x - (cx - off);
-	dy     = y - (cy);
-	vLeft  = 1.0f - (sqrtf(dx * dx + dy * dy) / (float)r);
+	float dx     = x - (cx + off);
+	float dy     = y - (cy);
+	float vRight = 1.0f - (sqrtf(dx * dx + dy * dy) / (float)r);
+	dx           = x - (cx - off);
+	dy           = y - (cy);
+	float vLeft  = 1.0f - (sqrtf(dx * dx + dy * dy) / (float)r);
 
 	// Clamp to 0
 	if (vLeft < 0.0f) {
@@ -677,7 +742,7 @@ void GameLib_ConvertScreenPositionToGamePosition(vec2 screenPos, vec2 gamePos, f
 //
 //
 void GameLib_AddParallaxBackground(DrawImg img, int imgSize[2], int imgOffset[2], float parallaxFactor[2]) {
-	int idx = g_NumParallaxBackgrounds;
+	const int idx = g_NumParallaxBackgrounds;
 	if ((idx + 1) >= MaxParallaxBackgrounds) {
 		Print("GameLib: Can't add parallaxBackground, limit reached.");
 		return;
