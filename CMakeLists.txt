@@ -31,6 +31,7 @@ set(GAMELIB_HEADERS
     src/Audio.h
     src/Anim.h
     src/Entity.h
+    src/Bucket.h
     src/GameLib.h)
 
 set(GAMELIB_SOURCE
@@ -42,6 +43,7 @@ set(GAMELIB_SOURCE
     src/Audio.c
     src/Anim.c
     src/Entity.c
+    src/Bucket.c
     src/GameLib.c)
 
 add_library(GameLib STATIC

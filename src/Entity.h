@@ -4,6 +4,7 @@
 #define Entity_H
 
 #include "Anim.h"
+#include "Bucket.h"
 #include "Draw.h"
 #include "Util.h"
 
@@ -76,8 +77,7 @@ struct TEntity {
 	vec2 VecB;
 	Entity child;
 
-	float maxX, minX;
-	float maxY, minY;
+	TBBox bbox;
 
 	Entity next;
 };

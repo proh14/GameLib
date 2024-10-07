@@ -8,6 +8,7 @@
 #include "Draw.h"
 #include "Util.h"
 
+#include "Bucket.h"
 #include "Entity.h"
 
 #define EntityIntFlag_UpdateLight 1
@@ -195,6 +196,7 @@ Entity Entity_Copy(Entity e) {
 	n->E     = e->E;
 	n->child = e->child;
 
+	n->bbox.parent = n;
 	Entity_CalcBBox(n);
 
 	// Call the copy event
@@ -215,19 +217,20 @@ void Entity_CalcBBox(Entity e) {
 	float hHeight = (max(e->height, e->radius) / 2) + BBox_ExtraMargin;
 	float hWidth  = (max(e->width, e->radius) / 2) + BBox_ExtraMargin;
 	if (e->vel[0] > 0) {
-		e->maxX = e->pos[0] + e->vel[0] + hWidth;
-		e->minX = e->pos[0] - hWidth;
+		e->bbox.x2 = e->pos[0] + e->vel[0] + hWidth;
+		e->bbox.x1 = e->pos[0] - hWidth;
 	} else {
-		e->minX = (e->pos[0] + e->vel[0]) - hWidth;
-		e->maxX = e->pos[0] + hWidth;
+		e->bbox.x1 = (e->pos[0] + e->vel[0]) - hWidth;
+		e->bbox.x2 = e->pos[0] + hWidth;
 	}
 	if (e->vel[1] > 0) {
-		e->maxY = e->pos[1] + e->vel[1] + hHeight;
-		e->minY = e->pos[1] - hHeight;
+		e->bbox.y2 = e->pos[1] + e->vel[1] + hHeight;
+		e->bbox.y1 = e->pos[1] - hHeight;
 	} else {
-		e->minY = (e->pos[1] + e->vel[1]) - hHeight;
-		e->maxY = e->pos[1] + hHeight;
+		e->bbox.y1 = (e->pos[1] + e->vel[1]) - hHeight;
+		e->bbox.y2 = e->pos[1] + hHeight;
 	}
+	e->bbox.changed = 1;
 }
 
 /////////////////////////////
@@ -235,10 +238,7 @@ void Entity_CalcBBox(Entity e) {
 //
 //
 int Entity_BBoxIntersect(Entity ent1, Entity ent2) {
-	if (ent1->maxX >= ent2->minX && ent1->minX <= ent2->maxX && ent1->maxY >= ent2->minY && ent1->minY <= ent2->maxY) {
-		return (1);
-	}
-	return (0);
+	return BBox_Intersect(&ent1->bbox, &ent2->bbox);
 }
 
 /////////////////////////////
