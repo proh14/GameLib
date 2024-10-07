@@ -18,6 +18,18 @@
 int GameLib_Init(int w, int h, char *title, int pFps, int fps);
 
 /////////////////////////////
+// GameLib_PrepareSize
+//
+//
+void GameLib_PrepareSize(float x1, float y1, float x2, float y2);
+
+/////////////////////////////
+// GameLib_CheckSize
+//
+//
+void GameLib_CheckSize();
+
+/////////////////////////////
 // GameLib_AddEntity
 //
 // Adds an entity to the game.
@@ -39,7 +51,7 @@ int GameLib_DelEntity(Entity e);
 // GameLib_Loop
 //
 // Loops the game.
-void GameLib_Loop(void (*gameproc)(), void (*gamepostproc)(), void (*gamepredraw)(float f), void (*gamedraw)(float f));
+void GameLib_Loop(void (*gameProc)(), void (*gamePostProc)(), void (*gamePreDraw)(float f), void (*gameDraw)(float f));
 
 /////////////////////////////
 // GameLib_GetPos
